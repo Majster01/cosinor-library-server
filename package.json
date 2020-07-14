@@ -20,6 +20,9 @@
     "migrate": "sequelize db:migrate",
     "newmigration": "sequelize migration:create --name $1"
   },
+  "engines": {
+    "node": "10.15.3"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Majster01/abc-admin-panel.git"
