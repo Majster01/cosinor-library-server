@@ -1,0 +1,16 @@
+{
+  "extends": "gts/tslint.json",
+  "linterOptions": {
+    "exclude": [
+      "**/*.json"
+    ]
+  },
+  "rules": {
+    "no-namespace": false,
+    "indent": true,
+    "no-consecutive-blank-lines": true,
+    "space-before-function-paren": true,
+    "typedef": true,
+    "variable-name": false
+  }
+}
