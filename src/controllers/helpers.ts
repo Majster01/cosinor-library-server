@@ -1,5 +1,4 @@
-import { Options, CosinorCommand, FormDataOptions } from "./python_scripts_handler"
-import { json } from "body-parser"
+import { CosinorCommand, FormDataOptions } from "./python_scripts_handler"
 
 interface PythonKeyMap {
   [key: string]: string | undefined
