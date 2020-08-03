@@ -4,12 +4,14 @@ import { IsEmail, IsString, IsUUID, IsEnum, IsJWT, IsNumber, IsDate, IsArray, Is
 import {  OrUndefined, WebSocket } from '../middleware/decorators'
 import { spawnPythonMiddleware } from '../middleware/spawn_python'
 import * as SocketIO from 'socket.io'
+import { ParseResult } from 'papaparse'
 
 namespace Schemas {
 
   export class GetCosinorBody implements handlers.GetCosinorBody {
     @IsString() @OrUndefined() file?: string
     @IsEnum(handlers.CosinorCommand) command!: handlers.CosinorCommand
+    @IsEnum(handlers.CosinorType) cosinorType!: handlers.CosinorType
     @IsObject() options!: handlers.FormDataOptions
   }
 }

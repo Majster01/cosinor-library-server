@@ -1,4 +1,4 @@
-import { CosinorCommand, FormDataOptions } from "./python_scripts_handler"
+import { CosinorCommand, FormDataOptions, CosinorType } from "./python_scripts_handler"
 
 interface PythonKeyMap {
   [key: string]: string | undefined
@@ -13,15 +13,11 @@ const pythonKeyMap: PythonKeyMap = {
   period: 'period',
 }
 
-export const getPythonOptions = (command: CosinorCommand, options: FormDataOptions) => {
-  const commandOptions = options[command]
-
-  console.log('options', commandOptions)
+export const getPythonOptions = (command: CosinorCommand, cosinorType: CosinorType, options: FormDataOptions) => {
+  const commandOptions = options[command][cosinorType]
 
   return Object.keys(commandOptions).reduce((pythonOptions: object, key: string) => {
     const pythonKey: string | undefined = pythonKeyMap[key]
-
-    console.log('keyMap', key, pythonKey)
 
     if (pythonKey !== undefined) {
       return {

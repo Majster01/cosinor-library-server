@@ -12,18 +12,37 @@ export enum PeriodogramPeriodType {
   WELCH = 'welch'
 }
 
-export interface PeriodogramOptions {
-  periodType: PeriodogramPeriodType,
-  logscale: boolean,
-  prominent: boolean,
-  maxPer: number,
+export enum CosinorType {
+  COSINOR = 'general cosinor',
+  COSINOR1 = 'cosinor1',
 }
 
-export type Options = PeriodogramOptions
+export interface PeriodogramOptions {
+  [CosinorType.COSINOR]: {
+    periodType: PeriodogramPeriodType,
+    logScale: boolean,
+    prominent: boolean,
+    maxPeriod: number,
+  },
+  [CosinorType.COSINOR1]: {},
+}
+
+export interface FitGroupOptions {
+  [CosinorType.COSINOR]: {
+    components: number,
+    period: number,
+  },
+  [CosinorType.COSINOR1]: {
+    period: number,
+  },
+}
+
+export type Options = PeriodogramOptions | FitGroupOptions
 
 export interface GetCosinorBody {
   file?: string,
   command: CosinorCommand,
+  cosinorType: CosinorType
   options: FormDataOptions
 }
 
@@ -36,7 +55,7 @@ export enum CosinorCommand {
 
 export interface FormDataOptions {
   [CosinorCommand.PERIODOGRAM]: PeriodogramOptions
-  [CosinorCommand.FIT_GROUP]: PeriodogramOptions
+  [CosinorCommand.FIT_GROUP]: FitGroupOptions
 }
 
 export interface Graph {
@@ -85,10 +104,13 @@ export const getPythonScript = async (ws: SocketIO.Socket, body: GetCosinorBody)
 
   console.log('getCosinor body', body)
 
+  console.log('OPTIONS', getPythonOptions(body.command, body.cosinorType, body.options))
+
   ws.emit('run', {
     command: body.command,
+    cosinorType: body.cosinorType,
     file: body.file,
-    options: getPythonOptions(body.command, body.options)
+    options: getPythonOptions(body.command, body.cosinorType, body.options)
   })
 
   const response = await awaitWebSocket(ws, 'response')

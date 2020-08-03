@@ -41,14 +41,14 @@ def pyplotToBase64(plot):
 
   return base64_message
 
-def periodogram(options, file, sio, namespace):
+def periodogram(cosinorType, options, file, sio, namespace):
 
   sio.emit('print', 'periodogram', namespace=namespace)
   sio.emit('print', file == None, namespace=namespace)
   if file == None:
     df = file_parser.generate_test_data(phase = 0, n_components = 1, name="test1", noise=0.5, replicates = 1)
   else:
-    df = file_parser.read_csv(file, ',')
+    df = file_parser.read_csv(file, '\t')
 
   sio.emit('print', 'df', namespace=namespace)
   print(df)
@@ -58,20 +58,25 @@ def periodogram(options, file, sio, namespace):
 
   return figure_image_list
 
-def fit_group(options, file, sio, namespace):
+def fit_group(cosinorType, options, file, sio, namespace):
 
   sio.emit('print', 'fit_group', namespace=namespace)
   sio.emit('print', file == None, namespace=namespace)
   if file == None:
     df = file_parser.generate_test_data(phase = 0, n_components = 1, name="test1", noise=0.5, replicates = 1)
   else:
-    df = file_parser.read_csv(file, ',')
+    df = file_parser.read_csv(file, '\t')
 
   sio.emit('print', 'df', namespace=namespace)
   print(df)
   figure_image_list = []
-  cosinor.fit_group(df, n_components = options['n_components'], period=options['period'], figure_image_list=figure_image_list)
-  sio.emit('print', 'pyplot', namespace=namespace)
+
+  if cosinorType == 'general cosinor':
+    cosinor.fit_group(df, n_components = options['n_components'], period=options['period'], figure_image_list=figure_image_list)
+    sio.emit('print', 'general cosinor', namespace=namespace)
+  elif cosinorType == 'cosinor1':
+    sio.emit('print', 'cosinor1', namespace=namespace)
+    cosinor1.fit_group(df, period=options['period'], figure_image_list=figure_image_list)
 
   return figure_image_list
 
@@ -107,6 +112,8 @@ def createSocket(uuid):
     try:
       if 'command' not in data:
         raiseUnsupportedCommandError()
+      if 'cosinorType' not in data:
+        raiseUnsupportedCommandError()
       if 'options' not in data:
         raiseUnsupportedCommandError()
 
@@ -114,12 +121,14 @@ def createSocket(uuid):
 
       options = data['options']
 
+      cosinorType = data['cosinorType']
+
       if 'file' in data:
         sio.emit('print', data['file'], namespace=namespace)
         file = getFile(data['file'], sio, namespace)
-        linesData = cosinorFunction(options, file, sio, namespace)
+        linesData = cosinorFunction(cosinorType, options, file, sio, namespace)
       else:
-        linesData = cosinorFunction(options, None, sio, namespace)
+        linesData = cosinorFunction(cosinorType, options, None, sio, namespace)
 
       sio.emit('response', json.dumps(linesData), namespace=namespace)
       sys.exit()

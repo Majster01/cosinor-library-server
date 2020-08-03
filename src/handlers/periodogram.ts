@@ -2,10 +2,12 @@ import { CosinorCommand, DataFramePoint, Graph } from '../controllers/python_scr
 
 export const handlePeriodogram = (json: string): Graph[] => {
   
-  const pythonData: string = JSON.parse(json)
+  const pythonData: string[] = JSON.parse(json)
 
-  return [{
+  const graphs: Graph[] = pythonData.map((data: string) => ({
     command: CosinorCommand.PERIODOGRAM,
-    data: pythonData
-  }]
+    data,
+  }))
+
+  return graphs
 }
