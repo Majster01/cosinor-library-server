@@ -39,39 +39,52 @@ export interface FitGroupOptions {
 
 export type Options = PeriodogramOptions | FitGroupOptions
 
-export interface GetCosinorBody {
-  file?: string,
-  command: CosinorCommand,
+export interface RunAnalysisBody {
+  data: string,
+  command: CosinorAnalysisCommand,
   cosinorType: CosinorType
   options: FormDataOptions
 }
 
+export interface GenerateDataBody {
+  components?: number | number[],
+  period?: number,
+  amplitudes?: number,
+  noise?: number,
+}
+
 export type GetCosinorResponse = DataFramePoint[] | DataFramePoint[][]
 
-export enum CosinorCommand {
+export enum CosinorAnalysisCommand {
   PERIODOGRAM = 'periodogram',
   FIT_GROUP = 'fit_group',
 }
 
+export enum GeneralCommand {
+  GENERATE_DATA = 'generate_data'
+}
+
+export type Command = CosinorAnalysisCommand | GeneralCommand
+
 export interface FormDataOptions {
-  [CosinorCommand.PERIODOGRAM]: PeriodogramOptions
-  [CosinorCommand.FIT_GROUP]: FitGroupOptions
+  [CosinorAnalysisCommand.PERIODOGRAM]: PeriodogramOptions
+  [CosinorAnalysisCommand.FIT_GROUP]: FitGroupOptions
 }
 
 export interface Graph {
-  command: CosinorCommand,
+  command: CosinorAnalysisCommand,
   data: string,
 }
 
 export type GraphsResponse = Graph[]
 
 export type CosinorResponseHandler = {
-  [key in CosinorCommand]: (json: string) => Graph[]
+  [key in CosinorAnalysisCommand]: (json: string) => Graph[]
 }
 
 export const cosinorResponseHandler: CosinorResponseHandler = {
-  [CosinorCommand.PERIODOGRAM]: handlers.handlePeriodogram,
-  [CosinorCommand.FIT_GROUP]: handlers.handleFitGroup
+  [CosinorAnalysisCommand.PERIODOGRAM]: handlers.handlePeriodogram,
+  [CosinorAnalysisCommand.FIT_GROUP]: handlers.handleFitGroup
 }
 
 export const awaitWebSocket = <T = string>(ws: SocketIO.Socket, event: string): Promise<T> => {
@@ -100,17 +113,21 @@ export const awaitWebSocket = <T = string>(ws: SocketIO.Socket, event: string): 
   })
 }
 
-export const getPythonScript = async (ws: SocketIO.Socket, body: GetCosinorBody): Promise<GraphsResponse> => {
+export const runPythonCosinorAnalysis = async (ws: SocketIO.Socket, body: RunAnalysisBody): Promise<GraphsResponse> => {
 
   console.log('getCosinor body', body)
 
-  console.log('OPTIONS', getPythonOptions(body.command, body.cosinorType, body.options))
+  console.log('OPTIONS', getPythonOptions(body.options))
+
+  const options = getPythonOptions(body.options)
 
   ws.emit('run', {
     command: body.command,
     cosinorType: body.cosinorType,
-    file: body.file,
-    options: getPythonOptions(body.command, body.cosinorType, body.options)
+    options: {
+      data: body.data,
+      ...options,
+    }
   })
 
   const response = await awaitWebSocket(ws, 'response')
@@ -118,4 +135,27 @@ export const getPythonScript = async (ws: SocketIO.Socket, body: GetCosinorBody)
   console.log('response', response)
 
   return cosinorResponseHandler[body.command](response)
+}
+
+export const runPythonGenerateData = async (ws: SocketIO.Socket, body: GenerateDataBody): Promise<string> => {
+
+  console.log('getCosinor body', body)
+
+  const {
+    components,
+    period,
+    noise,
+    amplitudes
+  } = body
+
+  ws.emit('run', {
+    command: GeneralCommand.GENERATE_DATA,
+    options: body
+  })
+
+  const response: string = await awaitWebSocket(ws, 'response')
+
+  console.log('response', response)
+
+  return response
 }

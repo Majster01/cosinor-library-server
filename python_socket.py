@@ -23,10 +23,11 @@ def mapToXY(line):
 def raiseUnsupportedCommandError(csv = None):
   raise CommandError('Unsupported command')
 
-def getCosinorFunction(command):
+def getCommandFunction(command):
   switcher={
     'periodogram': periodogram,
     'fit_group': fit_group,
+    'generate_data': generate_data,
   }
 
   return switcher.get(command, raiseUnsupportedCommandError)
@@ -41,31 +42,107 @@ def pyplotToBase64(plot):
 
   return base64_message
 
-def periodogram(cosinorType, options, file, sio, namespace):
+def validateGenerateData(payload):
+  if 'command' not in payload:
+    raiseUnsupportedCommandError()
+  if 'options' not in payload:
+    raiseUnsupportedCommandError()
+
+  options = payload['options']
+
+  if 'components' not in options:
+    components = None
+  else:
+    components = options['components']
+
+  
+  if 'period' not in options:
+    period = None
+  else:
+    period = options['period']
+
+  
+  if 'amplitudes' not in options:
+    amplitudes = None
+  else:
+    amplitudes = options['amplitudes']
+
+  
+  if 'noise' not in options:
+    noise = None
+  else:
+    noise = options['noise']
+
+  return components, period, amplitudes, noise
+
+def generate_data(payload, sio, namespace):
+  sio.emit('print', 'generate_data', namespace=namespace)
+
+  components, period, amplitudes, noise = validateGenerateData(payload)
+
+  sio.emit('print', json.dumps(components), namespace=namespace)
+  sio.emit('print', json.dumps(period), namespace=namespace)
+  sio.emit('print', json.dumps(amplitudes), namespace=namespace)
+  sio.emit('print', json.dumps(noise), namespace=namespace)
+
+  df = file_parser.generate_test_data(phase = 0, n_components = 1, name="test1", noise=0.5, replicates = 1)
+
+  sio.emit('print', 'after file parser', namespace=namespace)
+
+  csv_buffer = io.StringIO()
+  df.to_csv(csv_buffer, sep="\t", index=False, na_rep='NA')
+
+  csv_string = csv_buffer.getvalue()
+
+  sio.emit('print', csv_string, namespace=namespace)
+
+  return csv_string
+
+def validateCosinorAnalysisCommand(payload):
+  if 'command' not in payload:
+    raiseUnsupportedCommandError()
+  if 'cosinorType' not in payload:
+    raiseUnsupportedCommandError()
+  if 'options' not in payload:
+    raiseUnsupportedCommandError()
+
+  options = payload['options']
+  cosinorType = payload['cosinorType']
+
+  if 'data' not in options:
+    raiseUnsupportedCommandError()
+
+  data = options['data']
+
+  return cosinorType, options, data
+  
+
+def periodogram(payload, sio, namespace):
+  cosinorType, options, data = validateCosinorAnalysisCommand(payload)
+
+  file = getFile(data, sio, namespace)
 
   sio.emit('print', 'periodogram', namespace=namespace)
   sio.emit('print', file == None, namespace=namespace)
-  if file == None:
-    df = file_parser.generate_test_data(phase = 0, n_components = 1, name="test1", noise=0.5, replicates = 1)
-  else:
-    df = file_parser.read_csv(file, '\t')
+  
+  df = file_parser.read_csv(file, '\t')
 
   sio.emit('print', 'df', namespace=namespace)
-  print(df)
 
   figure_image_list = []
   cosinor.periodogram_df(df, per_type=options['per_type'], logscale=options['logscale'], prominent=options['prominent'], max_per=options['max_per'], figure_image_list=figure_image_list)
 
-  return figure_image_list
+  return json.dumps(figure_image_list)
 
-def fit_group(cosinorType, options, file, sio, namespace):
+def fit_group(payload, sio, namespace):
+  cosinorType, options, data = validateCosinorAnalysisCommand(payload)
+
+  file = getFile(data, sio, namespace)
 
   sio.emit('print', 'fit_group', namespace=namespace)
   sio.emit('print', file == None, namespace=namespace)
-  if file == None:
-    df = file_parser.generate_test_data(phase = 0, n_components = 1, name="test1", noise=0.5, replicates = 1)
-  else:
-    df = file_parser.read_csv(file, '\t')
+  
+  df = pd.read_csv(file, '\t')
 
   sio.emit('print', 'df', namespace=namespace)
   print(df)
@@ -78,13 +155,12 @@ def fit_group(cosinorType, options, file, sio, namespace):
     sio.emit('print', 'cosinor1', namespace=namespace)
     cosinor1.fit_group(df, period=options['period'], figure_image_list=figure_image_list)
 
-  return figure_image_list
+  return json.dumps(figure_image_list)
 
 def getFile(fileString, sio, namespace):
   sio.emit('print', 'getFile', namespace=namespace)
-  s = io.StringIO(fileString)
 
-  sio.emit('print', s.readlines(), namespace=namespace)
+  sio.emit('print', fileString, namespace=namespace)
 
   return io.StringIO(fileString)
 
@@ -110,27 +186,14 @@ def createSocket(uuid):
     sio.emit('print', json.dumps(data), namespace=namespace)
 
     try:
-      if 'command' not in data:
-        raiseUnsupportedCommandError()
-      if 'cosinorType' not in data:
-        raiseUnsupportedCommandError()
-      if 'options' not in data:
-        raiseUnsupportedCommandError()
+      commandFunction = getCommandFunction(data['command'])
 
-      cosinorFunction = getCosinorFunction(data['command'])
+      response = commandFunction(data, sio, namespace)
 
-      options = data['options']
+      sio.emit('print', 'before response', namespace=namespace)
+      sio.emit('print', response, namespace=namespace)
 
-      cosinorType = data['cosinorType']
-
-      if 'file' in data:
-        sio.emit('print', data['file'], namespace=namespace)
-        file = getFile(data['file'], sio, namespace)
-        linesData = cosinorFunction(cosinorType, options, file, sio, namespace)
-      else:
-        linesData = cosinorFunction(cosinorType, options, None, sio, namespace)
-
-      sio.emit('response', json.dumps(linesData), namespace=namespace)
+      sio.emit('response', response, namespace=namespace)
       sys.exit()
     except CommandError:
       sio.emit('error', 'Unsupported command' ,namespace=namespace)

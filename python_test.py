@@ -67,13 +67,72 @@ def fit_group(file):
 
   print(figure_image_list)
 
-def getFile(fileString, sio, namespace):
-  sio.emit('print', 'getFile', namespace=namespace)
+def getFile(fileString):
   s = io.StringIO(fileString)
 
-  sio.emit('print', s.readlines(), namespace=namespace)
+  print(s)
 
   return io.StringIO(fileString)
 
+def validateGenerateData(payload):
+  if 'command' not in payload:
+    raiseUnsupportedCommandError()
+  if 'options' not in payload:
+    raiseUnsupportedCommandError()
+
+  options = payload['options']
+
+  if 'components' not in options:
+    components = None
+  else:
+    components = options['components']
+
+  
+  if 'period' not in options:
+    period = None
+  else:
+    period = options['period']
+
+  
+  if 'amplitudes' not in options:
+    amplitudes = None
+  else:
+    amplitudes = options['amplitudes']
+
+  
+  if 'noise' not in options:
+    noise = None
+  else:
+    noise = options['noise']
+
+  return components, period, amplitudes, noise
+
+def generate_data(payload):
+  components, period, amplitudes, noise = validateGenerateData(payload)
+
+  df = file_parser.generate_test_data(phase = 0, n_components = 1, name="test1", noise=0.5, replicates = 1)
+
+  print(df)
+
+  csv_buffer = io.StringIO()
+  df.to_csv(csv_buffer, sep="\t", index=False, na_rep='NA')
+
+  csv_string = csv_buffer.getvalue()
+
+  print(csv_string)
+
+  file = getFile(csv_string)
+
+  data = io.StringIO(csv_string)
+  df = file_parser.read_csv(data, sep="\t")
+
+  print(df)
+
+  return csv_string
+
+
 if __name__ == "__main__":
-  fit_group(None)
+  generate_data({
+    "command": "generate_data",
+    "options": {},
+  })

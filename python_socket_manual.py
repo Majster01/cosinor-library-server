@@ -4,6 +4,7 @@ import sys
 from CosinorPy import file_parser, cosinor, cosinor1
 import numpy as np
 import pandas as pd
+import io
 
 sio = socketio.Client(
   logger=True,
@@ -26,6 +27,13 @@ def disconnect():
   sys.exit()
 
 
+class CommandError(Exception):
+  def __init__(self, message):
+    super().__init__(message)
+
+def raiseUnsupportedCommandError(csv = None):
+  raise CommandError('Unsupported command')
+
 def fit_group(file, sio, namespace):
 
   sio.emit('print', 'periodogram', namespace=namespace)
@@ -43,6 +51,57 @@ def fit_group(file, sio, namespace):
   lines = pyplot.gca().get_lines()
 
   return [mapToXY(line.get_xydata().tolist()) for line in lines]
+
+
+def validateGenerateData(payload):
+  if 'command' not in payload:
+    raiseUnsupportedCommandError()
+  if 'options' not in payload:
+    raiseUnsupportedCommandError()
+
+  options = payload['options']
+
+  if 'components' not in options:
+    components = None
+  else:
+    components = options['components']
+
+  
+  if 'period' not in options:
+    period = None
+  else:
+    period = options['period']
+
+  
+  if 'amplitudes' not in options:
+    amplitudes = None
+  else:
+    amplitudes = options['amplitudes']
+
+  
+  if 'noise' not in options:
+    noise = None
+  else:
+    noise = options['noise']
+
+  return components, period, amplitudes, noise
+
+def generate_data(payload, sio, namespace):
+  sio.emit('print', 'generate_data', namespace=namespace)
+
+  components, period, amplitudes, noise = validateGenerateData(payload)
+
+  df = file_parser.generate_test_data(phase = 0, n_components = 1, name="test1", noise=0.5, replicates = 1)
+
+  sio.emit('print', 'after file parser', namespace=namespace)
+
+  buffer = io.BytesIO()
+  df.to_csv(buffer, sep="\t")
+
+  sio.emit('print', 'buffer', namespace=namespace)
+  sio.emit('print', buffer, namespace=namespace)
+
+  return df
 
 @sio.on('run', namespace=namespace)
 def on_message(data):
