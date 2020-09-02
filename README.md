@@ -1,2 +1,1 @@
-# abc-admin-panel
-A administration panel for accounting staff
+# CosinorPy server implementation
