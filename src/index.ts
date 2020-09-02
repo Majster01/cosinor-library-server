@@ -10,6 +10,7 @@ import { port } from './conf'
 import * as http from 'http'
 import { CustomErrorHandler } from './middleware/error_middleware'
 import * as express from 'express'
+import * as SocketIO from 'socket.io'
 
 const whitelist = ['http://localhost:3000', 'http://localhost:5000', undefined]
 const corsOptions = {
@@ -48,6 +49,8 @@ const config: Config = {
   },
 }
 
-const app: App = new App(config)
+export const app: App = new App(config)
 
 export const server: http.Server = app.listen()
+
+export const socketIoServer: SocketIO.Server = app.createSocketIOServer(server)

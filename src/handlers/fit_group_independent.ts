@@ -1,29 +1,25 @@
 import { awaitWebSocket } from '../python/helpers'
 import { PythonResponseBody } from './interfaces'
-import { CosinorType, PeriodogramPeriodType, FileType } from '../interfaces'
+import { CosinorType, FileType } from '../interfaces'
 
-export interface PeriodogramBody {
+export interface FitGroupIndependentBody {
   fileType: FileType
   data: string
   cosinorType: CosinorType
-  max_per: number
-  min_per: number
-  per_type: PeriodogramPeriodType
-  prominent: boolean
-  logscale: boolean
-
+  n_components: number | number[],
+  period: number,
 }
 
-export const handlePeriodogram = async (ws: SocketIO.Socket, body: PeriodogramBody): Promise<PythonResponseBody> => {
-
+export const handleFitGroup = async (ws: SocketIO.Socket, body: FitGroupIndependentBody): Promise<PythonResponseBody> => {
+  
   const {
     data,
-    fileType,
     cosinorType,
+    fileType,
     ...rest
   } = body
   
-  ws.emit('periodogram', {
+  ws.emit('fit_group_independent', {
     cosinorType,
     fileType,
     options: {

@@ -1,40 +1,57 @@
 import * as SocketIO from 'socket.io'
-import { server } from '../index'
+import { socketIoServer } from '../index'
 import * as uuid from 'uuid'
-import * as ws from 'ws'
 import { Request, Response } from '../interfaces'
 
-// tslint:disable-next-line:no-any
-const createSocket = (uuid: string) => {
+const awaitConnection = async (ws: SocketIO.Namespace): Promise<SocketIO.Socket> => new Promise((resolve, reject) => {
 
-  const io: SocketIO.Server = SocketIO.listen(server)
+  const rejectTimeout = setTimeout(() => {
+    reject()
+  }, 5000)
+  ws.on('connection', (socket: SocketIO.Socket) => {
+    console.log('connection recieved', socket.id)
+    clearTimeout(rejectTimeout)
+    resolve(socket)
+  })
+})
+
+const createSocketNamespace = (uuid: string) => {
         
-  return io.of(`/python-library/${uuid}`)
+  return socketIoServer.of(`/python-library/${uuid}`)
 }
 
 // tslint:disable-next-line:no-any
-export const spawnPythonMiddleware = (req: Request, res: Response, next: any) => {
+export const spawnPythonMiddleware = async (req: Request, res: Response, next: any) => {
   const socketConnectionUuid: string = uuid.v4()
 
-  console.log("spawnPythonMiddleware", socketConnectionUuid);
-  const ws = createSocket(socketConnectionUuid)
+  const namespace = createSocketNamespace(socketConnectionUuid)
 
   const spawn = require("child_process").spawn;
-  const pythonProcess = spawn("python", ["./python_socket.py", socketConnectionUuid]);
+  const pythonProcess = spawn("python", ["./python_socket.py", socketConnectionUuid], {
+    detached: true,
+  });
 
   pythonProcess.stdout.on("data", (data: Buffer) => {
     console.log("pythonProcess.stdout.on data")
     console.log(data.toString())
   });
   pythonProcess.stderr.on("data", (data: Buffer) => {
-    console.log("pythonProcess.stdout.on error")
-    console.log(data.toString())
+    console.log("pythonProcess.stdout.on error", data)
+    console.log('data: ', data.toString())
   });
 
-  ws.on('connection', (socket: SocketIO.Socket) => {
-    console.log('connection recieved', socket.id)
-    req.webSocket = socket
+  // tslint:disable-next-line:no-any
+  pythonProcess.on('exit', (code: any, signal: any) => {
+    console.log(socketConnectionUuid, 'child process exited with ' +
+                `code ${code} and signal ${signal}`);
+  })
 
-    next()
-})
+  // tslint:disable-next-line:no-any
+  pythonProcess.on('close', (code: any, signal: any) => {
+    console.log(socketConnectionUuid, 'close', code, signal);
+  })
+
+  req.webSocket = await awaitConnection(namespace)
+
+  next()
 }
