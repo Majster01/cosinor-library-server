@@ -1,4 +1,4 @@
-import {Middleware, ExpressErrorMiddlewareInterface, HttpError} from "routing-controllers";
+import {Middleware, ExpressErrorMiddlewareInterface, HttpError, InternalServerError} from "routing-controllers";
 
 @Middleware({ type: "after" })
 export class CustomErrorHandler implements ExpressErrorMiddlewareInterface {
@@ -8,7 +8,7 @@ export class CustomErrorHandler implements ExpressErrorMiddlewareInterface {
   }
   // tslint:disable-next-line:no-any
   error (error: any, request: any, response: any, next: (err: any) => any) {
-    console.log('CustomErrorHandler error', error, request.body)
-    next(new HttpError(500, 'Unexpected Error'));
+    console.log('CustomErrorHandler error', error)
+    next(new InternalServerError('Unexpected Error'));
   }
 }

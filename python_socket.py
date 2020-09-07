@@ -100,14 +100,16 @@ def validateCosinorAnalysisCommand(payload):
 def periodogram(payload, sio, namespace):
   cosinorType, fileType, options, data = validateCosinorAnalysisCommand(payload)
 
-  df = getDataFrame(fileType, data, sio, namespace)
+  hasXlsxReplicates = options['hasXlsxReplicates']
+
+  df = getDataFrame(fileType, data, hasXlsxReplicates)
 
   sio.emit('print', 'periodogram', namespace=namespace)
   
   sio.emit('print', json.dumps(options), namespace=namespace)
 
   figure_image_list = []
-  cosinor.periodogram_df(df, per_type=options['per_type'], logscale=options['logscale'], prominent=options['prominent'], max_per=options['max_per'], min_per=options['min_per'], figure_image_list=figure_image_list)
+  cosinor.periodogram_df(df, per_type=options['per_type'], logscale=options['logscale'], max_per=options['max_per'], min_per=options['min_per'], figure_image_list=figure_image_list)
 
   return json.dumps({
     'graphs': figure_image_list,
@@ -117,8 +119,10 @@ def periodogram(payload, sio, namespace):
 def fit_group_independent(payload, sio, namespace):
   cosinorType, fileType, options, data = validateCosinorAnalysisCommand(payload)
 
+  hasXlsxReplicates = options['hasXlsxReplicates']
+
   sio.emit('print', 'fit_group_independent', namespace=namespace)
-  df = getDataFrame(fileType, data, sio, namespace)
+  df = getDataFrame(fileType, data, hasXlsxReplicates)
 
   figure_image_list = []
 
@@ -161,7 +165,9 @@ def fit_group_independent(payload, sio, namespace):
 def fit_group_population(payload, sio, namespace):
   cosinorType, fileType, options, data = validateCosinorAnalysisCommand(payload)
 
-  df = getDataFrame(fileType, data, sio, namespace)
+  hasXlsxReplicates = options['hasXlsxReplicates']
+
+  df = getDataFrame(fileType, data, hasXlsxReplicates)
 
   figure_image_list = []
 
@@ -182,6 +188,9 @@ def fit_group_population(payload, sio, namespace):
     if (plot == False):
       df_best_models = cosinor.get_best_models_population(df, df_models = result_df, n_components = [1,2,3])
 
+      sio.emit('print', 'plot_df_models_population', namespace=namespace)
+      sio.emit('print', figure_image_list, namespace=namespace)
+
       cosinor.plot_df_models_population(df, df_best_models, figure_image_list=figure_image_list)
 
       data = df_best_models.to_csv()
@@ -201,10 +210,14 @@ def fit_group_population(payload, sio, namespace):
   })
 
 def comparison_independent(payload, sio, namespace):
+  sio.emit('print', 'comparison_independent', namespace=namespace)
+
   cosinorType, fileType, options, data = validateCosinorAnalysisCommand(payload)
+  
+  hasXlsxReplicates = options['hasXlsxReplicates']
 
   sio.emit('print', 'comparison_independent', namespace=namespace)
-  df = getDataFrame(fileType, data, sio, namespace)
+  df = getDataFrame(fileType, data, hasXlsxReplicates)
   sio.emit('print', json.dumps(options), namespace=namespace)
 
   figure_image_list = []
@@ -234,10 +247,16 @@ def comparison_independent(payload, sio, namespace):
   })
 
 def comparison_population(payload, sio, namespace):
-  cosinorType, fileType, options, data = validateCosinorAnalysisCommand(payload)
+  sio.emit('print', 'comparison_population validateCosinorAnalysisCommand', namespace=namespace)
 
-  sio.emit('print', 'comparison_population', namespace=namespace)
-  df = getDataFrame(fileType, data, sio, namespace)
+  cosinorType, fileType, options, data = validateCosinorAnalysisCommand(payload)
+  
+  sio.emit('print', fileType, namespace=namespace)
+
+  hasXlsxReplicates = options['hasXlsxReplicates']
+
+  sio.emit('print', hasXlsxReplicates, namespace=namespace)
+  df = getDataFrame(fileType, data, hasXlsxReplicates)
   sio.emit('print', json.dumps(options), namespace=namespace)
 
   figure_image_list = []
@@ -245,7 +264,7 @@ def comparison_population(payload, sio, namespace):
   period=options['period']
   pairs=options['pairs']
 
-  df_comp = cosinor1.population_test_cosinor_pairs(df, pairs = pairs, period=period, figure_image_list = figure_image_list)
+  df_comp = cosinor1.population_test_cosinor_pairs(df, pairs = pairs, period=period, plot_on=True, figure_image_list = figure_image_list)
 
   data = df_comp.to_csv()
 
@@ -254,17 +273,21 @@ def comparison_population(payload, sio, namespace):
     'data': data,
   })
 
-def getDataFrame(fileType, fileString, sio, namespace):
-  sio.emit('print', 'getFile', namespace=namespace)
+def getDataFrame(fileType, fileString, hasXLSXReplicates):
 
   if fileType == csvFileType:
     file = io.StringIO(fileString)
 
     return file_parser.read_csv(file, '\t')
   elif fileType == xlsxFileType:
+
     base64_bytes = fileString.encode('ascii')
     message_bytes = base64.b64decode(base64_bytes)
     file = io.BytesIO(message_bytes)
+    
+    if (hasXLSXReplicates == True): 
+      return file_parser.read_excel(file, independent=False)
+    
 
     return file_parser.read_excel(file)
 

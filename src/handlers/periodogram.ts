@@ -9,9 +9,8 @@ export interface PeriodogramBody {
   max_per: number
   min_per: number
   per_type: PeriodogramPeriodType
-  prominent: boolean
   logscale: boolean
-
+  hasXlsxReplicates: boolean | null
 }
 
 export const handlePeriodogram = async (ws: SocketIO.Socket, body: PeriodogramBody): Promise<PythonResponseBody> => {

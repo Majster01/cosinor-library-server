@@ -8,6 +8,7 @@ export interface FitGroupPopulationBody {
   cosinorType: CosinorType
   n_components: number | number[],
   period: number,
+  hasXlsxReplicates: boolean | null
 }
 
 export const handleFitGroupPopulation = async (ws: SocketIO.Socket, body: FitGroupPopulationBody): Promise<PythonResponseBody> => {
@@ -30,7 +31,7 @@ export const handleFitGroupPopulation = async (ws: SocketIO.Socket, body: FitGro
 
   const response = await awaitWebSocket(ws, 'response')
 
-  console.log('handleFitGroupPopulation RESPONSE', response)
+  // console.log('handleFitGroupPopulation RESPONSE', response)
 
   const pythonData: PythonResponseBody = JSON.parse(response)
 

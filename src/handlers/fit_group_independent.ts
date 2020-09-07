@@ -8,6 +8,7 @@ export interface FitGroupIndependentBody {
   cosinorType: CosinorType
   n_components: number | number[],
   period: number,
+  hasXlsxReplicates: boolean | null
 }
 
 export const handleFitGroup = async (ws: SocketIO.Socket, body: FitGroupIndependentBody): Promise<PythonResponseBody> => {

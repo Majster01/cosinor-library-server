@@ -1,9 +1,9 @@
-import { IsString, IsEnum, IsNumber, IsArray } from 'class-validator'
+import { IsString, IsEnum, IsNumber, IsArray, IsBoolean } from 'class-validator'
 import * as handlers from '../handlers/comparison'
 import { CosinorType, FitType, FileType } from '../interfaces'
 import { JsonController, Post, UseBefore, Body } from 'routing-controllers'
 import { spawnPythonMiddleware } from '../middleware/spawn_python'
-import { WebSocket } from '../middleware/decorators'
+import { WebSocket, OrNull } from '../middleware/decorators'
 import { PythonResponseBody } from '../handlers/interfaces'
 
 namespace Schemas {
@@ -16,6 +16,7 @@ namespace Schemas {
     @IsNumber() period!: number
     @IsNumber({}, { each: true }) n_components!: number | number[]
     @IsArray({ each: true }) pairs!: handlers.Tuple[]
+    @IsBoolean() @OrNull() hasXlsxReplicates!: boolean | null
   }
 }
 

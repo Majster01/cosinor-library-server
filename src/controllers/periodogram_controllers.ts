@@ -3,7 +3,7 @@ import * as handlers from '../handlers/periodogram'
 import { CosinorType, PeriodogramPeriodType, FileType } from '../interfaces'
 import { JsonController, Post, UseBefore, Body } from 'routing-controllers'
 import { spawnPythonMiddleware } from '../middleware/spawn_python'
-import { WebSocket } from '../middleware/decorators'
+import { WebSocket, OrNull } from '../middleware/decorators'
 import { PythonResponseBody } from '../handlers/interfaces'
 
 namespace Schemas {
@@ -16,7 +16,7 @@ namespace Schemas {
     @IsNumber() max_per!: number
     @IsNumber() min_per!: number
     @IsBoolean() logscale!: boolean
-    @IsBoolean() prominent!: boolean
+    @IsBoolean() @OrNull() hasXlsxReplicates!: boolean | null
   }
 }
 

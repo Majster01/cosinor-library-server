@@ -3,7 +3,7 @@ import * as handlers from '../handlers/fit_group_independent'
 import { CosinorType, PeriodogramPeriodType, FileType } from '../interfaces'
 import { JsonController, Post, UseBefore, Body } from 'routing-controllers'
 import { spawnPythonMiddleware } from '../middleware/spawn_python'
-import { WebSocket } from '../middleware/decorators'
+import { WebSocket, OrNull } from '../middleware/decorators'
 import { PythonResponseBody } from '../handlers/interfaces'
 
 namespace Schemas {
@@ -14,6 +14,7 @@ namespace Schemas {
     @IsEnum(CosinorType) cosinorType!: CosinorType
     @IsNumber() period!: number
     @IsNumber({}, { each: true }) n_components!: number | number[]
+    @IsBoolean() @OrNull() hasXlsxReplicates!: boolean | null
   }
 }
 
