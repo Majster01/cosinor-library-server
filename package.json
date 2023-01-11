@@ -60,7 +60,7 @@
     "bcrypt": "^3.0.7",
     "bluebird": "^3.7.1",
     "class-transformer": "^0.2.3",
-    "class-validator": "^0.11.0",
+    "class-validator": "^0.14.0",
     "cookie-parser": "^1.4.4",
     "cookieparser": "^0.1.0",
     "cors": "^2.8.5",
